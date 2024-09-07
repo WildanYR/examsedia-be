@@ -144,14 +144,32 @@ class PsikotesController extends ApiController
         foreach ($kelompok_tes as $keltes) {
             array_push($kelompokTes_ids, $keltes['id']);
         }
-        $soals = Soal::whereIn('kelompok_tes_id', $kelompokTes_ids)->orderBy('kelompok_tes_id', 'asc')->orderBy('nomor', 'asc')->get(['id', 'nomor', 'jenis_soal', 'kelompok_tes_id'])->toArray();
+        $soals = Soal::whereIn('kelompok_tes_id', $kelompokTes_ids)->orderBy('kelompok_tes_id', 'asc')->orderBy('nomor', 'asc')->get(['id', 'nomor', 'jenis_soal', 'kelompok_tes_id', 'opsi_soal'])->toArray();
         for ($i = 0; $i < count($kelompok_tes); $i++) {
             if (empty($kelompok_tes[$i]['soal'])) {
                 $kelompok_tes[$i]['soal'] = [];
             }
             for ($j = 0; $j < count($soals); $j++) {
                 if ($kelompok_tes[$i]['id'] == $soals[$j]['kelompok_tes_id']) {
-                    array_push($kelompok_tes[$i]['soal'], $soals[$j]);
+                    // proses opsi + skor, filter data soal
+                    $opsi_data = [];
+                    $opsi_ex = explode(';=;', $soals[$j]['opsi_soal']);
+                    for ($k = 0; $k < count($opsi_ex); $k++) {
+                        $ops = explode(';-;', $opsi_ex[$k]);
+
+                        array_push($opsi_data, [
+                            'value' => $ops[0],
+                            'score' => isset($ops[3]) ? (int)$ops[3] : 0
+                        ]);
+                    }
+                    $soal_data = [
+                        'id' => $soals[$j]['id'],
+                        'nomor' => $soals[$j]['nomor'],
+                        'jenis_soal' => $soals[$j]['jenis_soal'],
+                        'kelompok_tes_id' => $soals[$j]['kelompok_tes_id'],
+                        'opsi' => $opsi_data
+                    ];
+                    array_push($kelompok_tes[$i]['soal'], $soal_data);
                 }
             }
         }
